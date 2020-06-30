@@ -40,7 +40,7 @@ if kcdc.TLI_BuildDeviceList() == 0:
     message_data = DWORD()
     current_motor_pos = 0
 
-    move_pos=1000
+    move_pos=2000
     motor_command = c_int(move_pos)
 
     # Open Communication
@@ -53,7 +53,7 @@ if kcdc.TLI_BuildDeviceList() == 0:
     #Get Motor Position
     kcdc.CC_GetJogVelParams(serialno, byref(accel_param), byref(vel_param))
     #print(accel_param.value)
-    motorPos = kcdc.CC_GetPosition(serialno)
+    current_motor_pos = kcdc.CC_GetPosition(serialno)
     print(current_motor_pos)
     # #kcdc.CC_Home(serialno)
 
@@ -65,11 +65,13 @@ if kcdc.TLI_BuildDeviceList() == 0:
     while (int(message_type.value) != 2) or (int(message_id.value) != 1):
         kcdc.CC_WaitForMessage(serialno, byref(message_type), byref(message_id), byref(message_data))
         kcdc.CC_RequestPosition(serialno)
+        # I Get correct position feedback here
         print("TEST", kcdc.CC_GetPosition(serialno))
 
+    # But I dont get correct position feedback here. I just get 0.
     kcdc.CC_RequestPosition(serialno)
     time.sleep(0.1)
-    motorPos = kcdc.CC_GetPosition(serialno)
+    current_motor_pos = kcdc.CC_GetPosition(serialno)
     print(current_motor_pos)
     # Close Communication
     kcdc.CC_StopPolling(serialno)
