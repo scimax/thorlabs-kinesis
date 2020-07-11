@@ -17,110 +17,130 @@ from ctypes.wintypes import (
     DWORD,
     WORD,
 )
-class Static_Vars:
-    steps_per_mm = 34304
 
 from thorlabs_kinesis import benchtop_piezo as bp
 
-if bp.TLI_BuildDeviceList() == 0:
-    print("Device list built (no errors).")
+def homeStages():
+    # Home the y and z directions at half-of-travel so they can be used to do slight adjustments
+    halfway = c_short(16383)
+    zero = c_short(0)
+    bp.PBC_SetPosition(serialno,bp.Channel1,zero)
+    bp.PBC_SetPosition(serialno,bp.Channel2,halfway)
+    bp.PBC_SetPosition(serialno,bp.Channel3,halfway)
 
-    size = bp.TLI_GetDeviceListSize()
-    print(size, "device(s) found.")
-
-    serialnos = create_string_buffer(100)
-    bp.TLI_GetDeviceListByTypeExt(serialnos, 100, 27)
-    serialnos = list(filter(None, serialnos.value.decode("utf-8").split(',')))
-    print("Serial #'s:", serialnos)
-
-    serialno = c_char_p(bytes("27504851", "utf-8"))
-    accel_param = c_int()
-    vel_param = c_int()
-    message_type = WORD()
-    message_id = WORD()
-    message_data = DWORD()
-    current_motor_pos = 0
-
-    move_pos=2000
-    motor_command = c_int(move_pos)
-
-    # Open Communication
-    bp.PBC_Open(serialno)
-    bp.PBC_StartPolling(serialno)
-    bp.PBC_ClearMessageQueue(serialno)
-    time.sleep(3)
-    # kcdc.CC_Open(serialno)
-    # kcdc.CC_StartPolling(serialno, c_int(20))
-    # kcdc.CC_ClearMessageQueue(serialno)
-    # time.sleep(3)
-    # homeable = bool(bp.CC_CanHome(serialno))
-    # print(homeable)
-
-    channel1 = int(1)
-    channel2 = int(2)
-    channel3 = int(3)
-
-    #Identify Channels
-    bp.PBC_EnableChannel(serialno, channel1)
-    bp.PBC_Identify(serialno,channel1)
-    bp.PBC_EnableChannel(serialno, channel2)
-    bp.PBC_Identify(serialno,channel2)
-    bp.PBC_EnableChannel(serialno, channel3)
-    bp.PBC_Identify(serialno,channel3)
-
-    #Identify Control Mode
-    print("control type for channel3: ", bp.PBC_GetPositionControlMode(serialno,channel1))
-    print("control type for channel2: ", bp.PBC_GetPositionControlMode(serialno,channel2))
-    print("control type for channel3: ", bp.PBC_GetPositionControlMode(serialno,channel3))
-
-    bp.PBC_SetPositionControlMode(serialno,channel1,bp.CTR_ClosedLoop)
-    bp.PBC_GetPosition(serialno,channel1)
-
+def couple():
     maxTravel = 32767 # travel is from 0 to 32767 for 20 um
-    ten_nm_travel = c_short(16) # just under 10 nm of travel
-
-    currentPos = c_short
+    jogLength = int(16) # just under 10 nm of travel
+    currentPos = int(0)
     Done = False
     while not Done:
         try: 
-            if keyboard.is_pressed('q'):
+            if keyboard.is_pressed('q'):    # press q to exit the while loop and stop motion
                 print('Pull Complete')
-                Done = True
+                return
+            elif keyboard.is_pressed('w'):  # press w to increase the rate of motion
+                jogLength += int(2)
+                print("jogLength: ", jogLength)
+            elif keyboard.is_pressed('s'):  # press s to decrease the rate of motion
+                if jogLength > 4:
+                    jogLength -= int(2)
+                    print("jogLength: ", jogLength)
         except: 
             continue
-        currentPos = bp.PBC_GetPosition(serialno,channel1)
-        bp.PBC_SetPosition(serialno,channel1,currentPos+ten_nm_travel)
+        currentPos = int(bp.PBC_GetPosition(serialno,bp.Channel1))
+        bp.PBC_SetPosition(serialno,bp.Channel1,c_short(currentPos+jogLength))
         print("current position between 0 and 32767 (short): ",currentPos)
-        time.sleep(0.1)
-    
-    bp.PBC_StopPolling(serialno)
-    if bp.PBC_Disconnect(serialno) == 0:
-            print("device disconnected")
-    bp.PBC_Close(serialno)
+        time.sleep(0.2)
 
-    #Get Motor Position
-    # kcdc.CC_GetJogVelParams(serialno, byref(accel_param), byref(vel_param))
-    # #print(accel_param.value)
-    # current_motor_pos = kcdc.CC_GetPosition(serialno)
-    # print(current_motor_pos)
-    # #kcdc.CC_Home(serialno)
+def adjust(channel):
+    jogLength = 800 # about half a micron out of 20 um of 
+    currentPos = int(0)
+    Done = False 
+    while not Done:
+        try: 
+            if keyboard.is_pressed('q'):    # press q to exit the while loop and stop motion
+                print('Adjustment Complete')
+                return
+            elif keyboard.is_pressed('w'):  # press w to increase the rate of motion
+                currentPos = int(bp.PBC_GetPosition(serialno,channel))
+                bp.PBC_SetPosition(serialno,channel,c_short(currentPos+jogLength))
+                print("current position of channel ",channel,": ", currentPos+jogLength)
+            elif keyboard.is_pressed('s'):  # press s to decrease the rate of motion
+                currentPos = int(bp.PBC_GetPosition(serialno,channel))
+                bp.PBC_SetPosition(serialno,channel,c_short(currentPos-jogLength))
+                print("current position of channel ",channel,": ", currentPos+jogLength)
+        except: 
+            continue
 
-    # Start Move Test
-    # kcdc.CC_ClearMessageQueue(serialno)
-    # kcdc.CC_MoveToPosition(serialno, motor_command)
-    # kcdc.CC_WaitForMessage(serialno, byref(message_type), byref(message_id), byref(message_data))
+def upShift():
+    jogLength = int(16)
+    currentPos = int(bp.PBC_GetPosition(serialno,bp.Channel1))
+    bp.PBC_SetPosition(serialno,bp.Channel1,c_short(currentPos + jogLength))
 
-    # while (int(message_type.value) != 2) or (int(message_id.value) != 1):
-    #     kcdc.CC_WaitForMessage(serialno, byref(message_type), byref(message_id), byref(message_data))
-    #     kcdc.CC_RequestPosition(serialno)
-    #     # I Get correct position feedback here
-    #     print("TEST", kcdc.CC_GetPosition(serialno))
+def downShift():
+    jogLength = int(16)
+    currentPos = int(bp.PBC_GetPosition(serialno,bp.Channel1))
+    bp.PBC_SetPosition(serialno,bp.Channel1,c_short(currentPos - jogLength))
 
-    # # But I dont get correct position feedback here. I just get 0.
-    # kcdc.CC_RequestPosition(serialno)
-    # time.sleep(0.1)
-    # current_motor_pos = kcdc.CC_GetPosition(serialno)
-    # print(current_motor_pos)
-    # # Close Communication
-    # kcdc.CC_StopPolling(serialno)
-    # kcdc.CC_Close(serialno)
+
+if bp.TLI_BuildDeviceList() == 0:
+    print("Device list built (no errors).")
+    size = bp.TLI_GetDeviceListSize()
+    print(size, "device(s) found.")
+    if size > 0:
+
+        # Open Communication
+        serialno = c_char_p(bytes("27504851", "utf-8"))
+        bp.PBC_Open(serialno)
+        bp.PBC_StartPolling(serialno)
+        bp.PBC_ClearMessageQueue(serialno)
+        time.sleep(1)
+
+        # Initialize/Identify Channels
+
+        # x axis
+        bp.PBC_EnableChannel(serialno, bp.Channel1) # enables control of specified channel
+        bp.PBC_SetPositionControlMode(serialno, bp.Channel1, bp.CTR_ClosedLoop) # set the channel to closed loop
+        bp.PBC_Identify(serialno, bp.Channel1)  # cause the LED readout to blink to identify it
+        time.sleep(2)   # remove me after testing
+        # y axis
+        bp.PBC_EnableChannel(serialno, bp.Channel2)
+        bp.PBC_SetPositionControlMode(serialno, bp.Channel2, bp.CTR_ClosedLoop)
+        bp.PBC_Identify(serialno, bp.Channel2)
+        time.sleep(2)   # remove me after testing
+        # z axis
+        bp.PBC_EnableChannel(serialno, bp.Channel3)
+        bp.PBC_SetPositionControlMode(serialno, bp.Channel3, bp.CTR_ClosedLoop)
+        bp.PBC_Identify(serialno, bp.Channel3)
+
+        #Identify Control Mode TODO: remove this code after testing
+        print("control type for bp.Channel3: ", bp.PBC_GetPositionControlMode(serialno,bp.Channel1))
+        print("control type for bp.Channel2: ", bp.PBC_GetPositionControlMode(serialno,bp.Channel2))
+        print("control type for bp.Channel3: ", bp.PBC_GetPositionControlMode(serialno,bp.Channel3))
+
+        Done = False
+        while not Done:
+            command = input("Enter a key to perform an action (? for help: ")
+            if command is 'h':
+                homeStages()
+            elif command is 'c':
+                couple()
+            elif command is 'z':
+                adjust(bp.Channel3)
+            elif command is 'y':
+                adjust(bp.Channel2)
+            elif command is '?':
+                print('\nh -------- home the three axis\nc -------- couple (q to quit, w to speed up, s to slow down\nz -------- adjust z axis (q to quit, w to move up, s to move down\n y -------- adjust y axis (q to quit, w to move up, s to move down\nw -------- jog the x axis up once\ns -------- jog the x axis down once\nq -------- quit')
+            
+            try: 
+                if keyboard.is_pressed('w'):    # press q to exit the while loop and stop motion
+                    upShift()
+                elif keyboard.is_pressed('s'):
+                    downShift()
+            except: 
+                continue
+        
+        bp.PBC_StopPolling(serialno)
+        if bp.PBC_Disconnect(serialno) == 0:
+                print("device disconnected")
+        bp.PBC_Close(serialno)
