@@ -1,6 +1,8 @@
 import os
+import sys
 os.environ['PATH'] = "C:\\Program Files\\ThorLabs\\Kinesis" + ";" + os.environ['PATH']
-#print(os.environ['PATH'])
+sys.path.append(r"..\thorlabs-kinesis")
+
 from threading import Thread
 import thorlabs_kinesis as tk
 import time

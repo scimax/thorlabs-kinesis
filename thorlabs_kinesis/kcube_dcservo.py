@@ -1,6 +1,5 @@
 # Bindings for Thorlabs KCube DC Servo DLL
 # Implemented with Kinesis Version 1.14.23.16838
-import thorlabs_kinesis as tk
 
 from ctypes import (
     Structure,
