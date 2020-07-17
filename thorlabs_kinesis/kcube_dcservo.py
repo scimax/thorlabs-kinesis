@@ -81,7 +81,11 @@ CC_GetPosition  = bind(lib, "CC_GetPosition", [POINTER(c_char)], c_int)
 CC_Home = bind(lib, "CC_Home", [POINTER(c_char)], c_short)
 CC_MoveToPosition = bind(lib, "CC_MoveToPosition", [POINTER(c_char),c_int], c_short)
 CC_Open = bind(lib, "CC_Open", [POINTER(c_char)], c_short)
-CC_StartPolling = bind(lib, "CC_StartPolling", [POINTER(c_char), c_int], None)
+CC_StartPolling = bind(lib, "CC_StartPolling", [POINTER(c_char), c_int], c_bool)
 CC_StopPolling = bind(lib, "CC_StopPolling", [POINTER(c_char)], None)
+
+CC_PollingDuration = bind(lib, "CC_PollingDuration", [POINTER(c_char)], c_long)
+
 CC_WaitForMessage = bind(lib, "CC_WaitForMessage", [POINTER(c_char),POINTER(c_word),POINTER(c_word),POINTER(c_dword)], None)
 CC_RequestPosition = bind(lib, "CC_RequestPosition", [POINTER(c_char)], None)
+CC_Identify = bind(lib, "CC_Identify", [POINTER(c_char)], None)
