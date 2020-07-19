@@ -3,29 +3,11 @@ import sys
 os.environ['PATH'] = "C:\\Program Files\\ThorLabs\\Kinesis" + ";" + os.environ['PATH']
 sys.path.append(r"..\thorlabs-kinesis")
 
-from thorlabs_kinesis.kcube_dc_device import kcube
-
-#print(os.environ['PATH'])
-from threading import Thread
-import thorlabs_kinesis as tk
-import time
-from ctypes import (
-    c_short,
-    c_char_p,
-    c_void_p,
-    byref,
-    c_int,
-    create_string_buffer,
-)
-from ctypes.wintypes import (
-    DWORD,
-    WORD,
-)
 class Static_Vars:
     steps_per_mm = 34304
 
-from thorlabs_kinesis import kcube_dcservo as kcdc
-
+from thorlabs_kinesis.kcube_dc_device import kcube
+# from thorlabs_kinesis import kcube_dcservo as kcdc
 
 if __name__ == "__main__":
     serial_no = "27256231"
@@ -59,7 +41,7 @@ if __name__ == "__main__":
             print("Successfully started polling.")
         print("Stop polling")
         dev.start_polling()
-        
+
         # dev.start_poll()
         # dev.
 

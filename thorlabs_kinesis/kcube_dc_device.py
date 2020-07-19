@@ -77,7 +77,6 @@ class kcube:
         if not opened_return == 0:
             print("Opening communication failed!") 
         return opened_return
-
     def close(self):
         '''
         Close communication to controller.
@@ -101,11 +100,27 @@ class kcube:
         Stop the internal polling loop.
         '''
         kdc.CC_StopPolling(self.__serial_no)
-
     def get_polling_duration(self):
         return kdc.CC_PollingDuration(self.__serial_no)
+
+    def clear_msg_queue(self, parameter_list):
+        pass
+    def wait_for_msg(self):
+        # kcdc.CC_WaitForMessage(serialno, byref(message_type), byref(message_id), byref(message_data))
+        pass
     
+    # Move settings and moving
+    def can_home(self):
+        # kcdc.CC_CanHome(serialno)
+        pass
     def home(self):
+        # CC_Home(serialno)
+        pass
+    def get_jog_vel_params(self):
+        # CC_GetJogVelParams
+        pass
+    def move_to_position(self, position):
+        #CC_MoveToPosition
         pass
 
 
