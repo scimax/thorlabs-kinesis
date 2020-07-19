@@ -40,14 +40,12 @@ def cpp2py_function_binding_str(cpp_declaration):
             for single_param_list in parameter_types]
 
         parameter_types =  ["c_"+t if hasattr(ctypes,"c_"+t) else t for t in parameter_types]
-
-        expectedOutput = 'TLI_GetDeviceInfo = bind(lib, "TLI_GetDeviceInfo", [POINTER(c_char), POINTER(TLI_DeviceInfo)], c_short)'
-        print(parameter_types)
+        # print(parameter_types)
         if parameter_types == [""]:
             return_parameter_str = "None"
         else:
             return_parameter_str = "["+", ".join(["POINTER("+t+")" for t in parameter_types]) + "]"
-        print("return_parameter_str:  ", return_parameter_str)
+        # print("return_parameter_str:  ", return_parameter_str)
         return rf'{method_name} = bind(lib, "{method_name}", {return_parameter_str}, {return_type})'
     else:
         return cpp_declaration
@@ -93,8 +91,8 @@ def cpp2py_enum_binding_str(cpp_enum):
         underlying_type = "int"
     enum_name = name_str.replace(";", "").strip()
     underlying_type = type_dispatch(underlying_type)
-    # https://regex101.com/r/FrdzBt/1
-    reEnumerator = re.compile(r"^(\w+)\s*(?:=?\s*([\dx]*)),\s*(\/\/+)", flags=re.MULTILINE)
+    #https://regex101.com/r/FrdzBt/5
+    reEnumerator = re.compile(r"^(\w+)\s*(?:=\s*(0?[xX]?[0-9a-fA-F]+))?[,\s]\s*(\/\/+)", flags=re.MULTILINE)
     py_enumerators_str = reEnumerator.sub(r"\1 = "+underlying_type+r"(\2) # ", member_block_str)
     py_enumerators_str = py_enumerators_str.replace(underlying_type + "()", "None")
     return py_enumerators_str + rf"{enum_name} = {underlying_type}"
@@ -107,55 +105,65 @@ if __name__ == "__main__":
     # 4. 
 
     ### Create Temp file
-    # f_temp = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False)
-    # f_out_py = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False)
-    # print("temp file for reading header file:", os.path.split(f_temp.name)[1])
-    # print("temp file for writing python code")
+    f_temp = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False)
+    f_out_py = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False)
+    print("temp file for reading header file:", os.path.split(f_temp.name)[1])
+    print("temp file for writing python code")
 
-    # pathToLib = r"C:\Program Files\Thorlabs\Kinesis\Thorlabs.MotionControl.KCube.DCServo.h"
+    pathToLib = r"C:\Program Files\Thorlabs\Kinesis\Thorlabs.MotionControl.KCube.DCServo.h"
 
-    # with open(pathToLib, "r") as f_lib:
-    #     bool_typedef_lines = False
-    #     typedef_str = ""
-    #     for line in f_lib:
-    #         line = line.strip()
+    with open(pathToLib, "r") as f_lib:
+        bool_typedef_lines = False
+        bool_funcdef_lines = False
+        declaration_str = ""
+        for line in f_lib:
+            line = line.strip()
+            
+            if (not bool_funcdef_lines):
+                if line.startswith("typedef"):
+                    bool_typedef_lines = True
+                if bool_typedef_lines:
+                    declaration_str += line + "\n"
+                # elif line.startswith("typedef enum"):
+                #     boolEnumDefLines = True
+                #     f_temp.write("# Enumerator "+ line.split(":")[0].split(" ")[-1]+"\n")
+                if bool_typedef_lines and re.match(r"}(?:\W+)(\w+);", line):
+                    bool_typedef_lines = False
+                    if declaration_str.startswith("typedef enum"):
+                        py_bind_str = cpp2py_enum_binding_str(declaration_str)
+                    elif declaration_str.startswith("typedef struct"):
+                        py_bind_str = cpp2py_struct_binding_str(declaration_str)
+                    else:
+                        py_bind_str = "\n"
+                    declaration_str = "" # reset string
+                    f_temp.write(py_bind_str+ "\n")
 
-    #         if line.startswith("typedef"):
-    #             bool_typedef_lines = True
-    #         if bool_typedef_lines:
-    #             typedef_str += line + "\n"
-    #         # elif line.startswith("typedef enum"):
-    #         #     boolEnumDefLines = True
-    #         #     f_temp.write("# Enumerator "+ line.split(":")[0].split(" ")[-1]+"\n")
-    #         if bool_typedef_lines and re.match(r"}(?:\W+)(\w+);", line):
-    #             bool_typedef_lines = False
-    #             if typedef_str.startswith("typedef enum"):
-    #                 py_bind_str = cpp2py_enum_binding_str(typedef_str)
-    #             elif typedef_str.startswith("typedef struct"):
-    #                 py_bind_str = cpp2py_struct_binding_str(typedef_str)
-    #             else:
-    #                 py_bind_str = "\n"
-    #             typedef_str = "" # reset string
-                
-    #         if (not bool_typedef_lines) and line.startswith("KCUBEDCSERVO_API"):
-    #             f_temp.write(line+"\n")
+            if (not bool_typedef_lines):
+                if line.startswith("KCUBEDCSERVO_API") or bool_funcdef_lines:
+                    bool_funcdef_lines = True
+                    declaration_str += line 
+                if line.find(";") != -1:
+                    f_temp.write(cpp2py_function_binding_str(declaration_str)+"\n")
+                    declaration_str= ""
+                    bool_funcdef_lines = False
+
     
-    # f_temp.seek(0)
+    f_temp.seek(0)
 
-    # f_temp.close()
-    # if False:
-    #     os.remove(f_temp.name)
+    f_temp.close()
+    if False:
+        os.remove(f_temp.name)
 
 
     ### Test enum binding generation
-    input ='''	typedef enum MOT_TravelDirection : short
-	{
-		MOT_TravelDirectionUndefined,///<Undefined
-		MOT_Forwards = 0x01,///<Move in a Forward direction
-		MOT_Backwards = 0x02,///<Move in a Backward / Reverse direction
-	} MOT_TravelDirection;'''
-    input = "\n".join([l.strip() for l in input.split("\n")])
-    print(cpp2py_enum_binding_str(input))
+    # input ='''	typedef enum MOT_TravelDirection : short
+	# {
+	# 	MOT_TravelDirectionUndefined,///<Undefined
+	# 	MOT_Forwards = 0x01,///<Move in a Forward direction
+	# 	MOT_Backwards = 0x02,///<Move in a Backward / Reverse direction
+	# } MOT_TravelDirection;'''
+    # input = "\n".join([l.strip() for l in input.split("\n")])
+    # print(cpp2py_enum_binding_str(input))
 
 
     ### Test struct binding generation
