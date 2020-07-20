@@ -5,8 +5,9 @@
 import re
 import ctypes
 import os
-import tempfile
+# import tempfile
 import datetime
+import argparse
 
 reFuncPattern = re.compile(r"^\w+_API\W+((?:unsigned\W+)*\w+)\W+__cdecl\W+(\w+)\(([^)]*)\);")
 # reFunc
@@ -99,20 +100,22 @@ def cpp2py_enum_binding_str(cpp_enum):
     return py_enumerators_str + rf"{enum_name} = {underlying_type}"
 
 if __name__ == "__main__":
-    ## ToDos
-    # [x] create a temp file 
-    # [x] open header file
-    # [x] remove comment lines from header file while writing it to the temp file
-    # [x] open template file 
+    parser = argparse.ArgumentParser(description='Generate python binding for Thorlabs Kinesis DLL.')
+    parser.add_argument('-p', '--path', type=str, 
+        default=r"C:\Program Files\Thorlabs\Kinesis\Thorlabs.MotionControl.KCube.DCServo.h",
+        help='path to the DLL\'s header file which will be parsed. The default is "C:/Program Files/Thorlabs/Kinesis/Thorlabs.MotionControl.KCube.DCServo.h".')
+    parser.add_argument("-o", "--override", action="store_true",
+        help="If provided, an exising binding file will be overwritten.")
+    args = parser.parse_args()
 
     path_to_template = "__binding_template.py"
-    path_to_lib = r"C:\Program Files\Thorlabs\Kinesis\Thorlabs.MotionControl.KCube.DCServo.h"
+    path_to_lib = args.path
     dir_lib, header_file_name = os.path.split(path_to_lib)
     device_name_list = header_file_name.split(".")[2:-1]
     py_file_out = "_".join([s.lower() for s in device_name_list])+".py"
     py_path_out = os.path.join("thorlabs_kinesis", py_file_out)
 
-    if os.path.exists(py_path_out):
+    if os.path.exists(py_path_out) and (not args.override):
         raise FileExistsError("The binding file "+ py_path_out + " exists already. The code generation is aborted.")
 
     ### Create output python file
@@ -158,7 +161,7 @@ if __name__ == "__main__":
                     f_temp.write(py_bind_str+ "\n")
 
             if (not bool_typedef_lines):
-                if line.startswith("KCUBEDCSERVO_API") or bool_funcdef_lines:
+                if re.match(r"^\w+_API",line) or bool_funcdef_lines:
                     bool_funcdef_lines = True
                     declaration_str += line 
                 if line.find(";") != -1:
