@@ -7,7 +7,7 @@ import ctypes
 import os
 import tempfile
 
-reFuncPattern = re.compile(r"KCUBEDCSERVO_API\W+((?:unsigned\W+)*\w+)\W+__cdecl\W+(\w+)\(([^)]*)\);")
+reFuncPattern = re.compile(r"^\w+_API\W+((?:unsigned\W+)*\w+)\W+__cdecl\W+(\w+)\(([^)]*)\);")
 # reFunc
 
 ctypes.c_word = ctypes.c_ushort
@@ -25,7 +25,7 @@ def cpp2py_function_binding_str(cpp_declaration):
 
     # repeated subgroups are not supported
     # https://stackoverflow.com/questions/29020148/python-regex-subgroup-capturing
-    # Using simpler regex: https://regex101.com/r/aWLXTx/4
+    # Using simpler regex: https://regex101.com/r/aWLXTx/5
 
     match = reFuncPattern.match(cpp_declaration)
     if match:
