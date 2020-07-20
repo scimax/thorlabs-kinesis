@@ -1,29 +1,11 @@
 # Bindings for Thorlabs KCube DC Servo DLL
 # Implemented with Kinesis Version 1.14.23.16838
 
-from ctypes import (
-    Structure,
-    cdll,
-    c_bool,
-    c_short,
-    c_int,
-    c_uint,
-    c_int16,
-    c_int32,
-    c_char,
-    c_byte,
-    c_long,
-    c_float,
-    c_double,
-    POINTER,
-    CFUNCTYPE,
-)
+from ctypes import Structure, cdll, c_bool, c_short, c_int, c_uint,\
+    c_int16, c_int32, c_char, c_byte, c_long, c_float, c_double, \
+    POINTER,CFUNCTYPE
 
-from thorlabs_kinesis._utils import (
-    c_word,
-    c_dword,
-    bind
-)
+from thorlabs_kinesis._utils import c_word, c_dword, bind
 
 lib = cdll.LoadLibrary("Thorlabs.MotionControl.KCube.DCServo.dll")
 

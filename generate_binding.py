@@ -6,6 +6,7 @@ import re
 import ctypes
 import os
 import tempfile
+import datetime
 
 reFuncPattern = re.compile(r"^\w+_API\W+((?:unsigned\W+)*\w+)\W+__cdecl\W+(\w+)\(([^)]*)\);")
 # reFunc
@@ -99,20 +100,38 @@ def cpp2py_enum_binding_str(cpp_enum):
 
 if __name__ == "__main__":
     ## ToDos
-    # 1. create a temp file
-    # 2. open header file
-    # 3. remove comment lines from header file while writing it to the temp file
-    # 4. 
+    # [x] create a temp file 
+    # [x] open header file
+    # [x] remove comment lines from header file while writing it to the temp file
+    # [x] open template file 
 
-    ### Create Temp file
-    f_temp = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False)
-    f_out_py = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False)
-    print("temp file for reading header file:", os.path.split(f_temp.name)[1])
-    print("temp file for writing python code")
+    path_to_template = "__binding_template.py"
+    path_to_lib = r"C:\Program Files\Thorlabs\Kinesis\Thorlabs.MotionControl.KCube.DCServo.h"
+    dir_lib, header_file_name = os.path.split(path_to_lib)
+    device_name_list = header_file_name.split(".")[2:-1]
+    py_file_out = "_".join([s.lower() for s in device_name_list])+".py"
+    py_path_out = os.path.join("thorlabs_kinesis", py_file_out)
 
-    pathToLib = r"C:\Program Files\Thorlabs\Kinesis\Thorlabs.MotionControl.KCube.DCServo.h"
+    if os.path.exists(py_path_out):
+        raise FileExistsError("The binding file "+ py_path_out + " exists already. The code generation is aborted.")
 
-    with open(pathToLib, "r") as f_lib:
+    ### Create output python file
+    # f_temp = tempfile.NamedTemporaryFile(mode="w+", dir=".", delete=False)
+    f_temp = open(py_path_out, "w+")
+    
+    # Write header code
+    f_temp.write("# API Binding for Thorlabs " + (" ").join(device_name_list) + "\n")
+    f_temp.write("# Generated with generate_binding.py on" + "\n")
+    f_temp.write("# Date: "+str(datetime.date.today()) + "\n")
+    with open(path_to_template, "r") as f_template:
+        template_py_code  = f_template.read().replace("__DLL_PATH_PLACEHOLDER__", 
+            ".".join([os.path.splitext(header_file_name)[0], "dll"]) )
+        for line in template_py_code.split("\n"):
+            if not line.strip().startswith("#"):
+                f_temp.write(line+"\n")
+
+    # Write binding code
+    with open(path_to_lib, "r") as f_lib:
         bool_typedef_lines = False
         bool_funcdef_lines = False
         declaration_str = ""
@@ -147,13 +166,7 @@ if __name__ == "__main__":
                     declaration_str= ""
                     bool_funcdef_lines = False
 
-    
-    f_temp.seek(0)
-
     f_temp.close()
-    if False:
-        os.remove(f_temp.name)
-
 
     ### Test enum binding generation
     # input ='''	typedef enum MOT_TravelDirection : short
