@@ -68,7 +68,6 @@ CC_RequestJogParams = bind(lib, "CC_RequestJogParams", [POINTER(c_char)], c_shor
 CC_GetJogVelParams = bind(lib, "CC_GetJogVelParams", [POINTER(c_char),POINTER(c_int),POINTER(c_int)], c_short)
 CC_RequestVelParams = bind(lib, "CC_RequestVelParams", [POINTER(c_char)], c_short)
 CC_GetVelParams = bind(lib, "CC_GetVelParams", [POINTER(c_char),POINTER(c_int),POINTER(c_int)], c_short)
-
 CC_GetPosition  = bind(lib, "CC_GetPosition", [POINTER(c_char)], c_int)
 CC_Home = bind(lib, "CC_Home", [POINTER(c_char)], c_short)
 CC_MoveToPosition = bind(lib, "CC_MoveToPosition", [POINTER(c_char), c_int], c_short)

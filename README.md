@@ -77,6 +77,6 @@ To run this code with your device change the serial number *00000000* in `serial
 # Contributors
 This repository was first initiated by [ekarademir](https://github.com/ekarademir/). The following users also contributed
 - [ando600](https://github.com/ando600) from [BYUCamachoLab](https://github.com/BYUCamachoLab)
-- Sequoia Chin Ploeg
+- [Sequoia Ploeg](https://github.com/sequoiap) from [BYUCamachoLab](https://github.com/BYUCamachoLab)
 - [mtsimmons715](https://github.com/mtsimmons715)
 - [davotrey](https://github.com/davotrey)
