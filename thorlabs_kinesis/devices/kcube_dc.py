@@ -2,9 +2,9 @@
 import ctypes
 import time
 
-from . import kcube_dcservo as kdc
+from .. import kcube_dcservo as kdc
 
-class kcube:
+class kcube_dc:
     steps_per_mm = 34304    # class object
     def __init__(self, serial_no):
         '''
@@ -33,22 +33,6 @@ class kcube:
             return dict((field, getattr(device_info, field)) for field, _ 
                 in device_info._fields_)
 
-    def get_position(self, in_mm = False):
-        '''
-        Get current motor position.
-
-        in_mm: bool
-            if True, the value is returned on millimeter based on the steps per millimeter setting.
-            Otherwise the encoder position is returned.
-        
-        '''
-        encoder_pos = kdc.CC_GetPosition(self.__serial_no)
-        if in_mm:
-            return encoder_pos/self.steps_per_mm
-        else:
-            return encoder_pos
-
-
     def print_device_info(self):
         try:
             device_info = self.device_info
@@ -75,7 +59,8 @@ class kcube:
         opened_return = kdc.CC_Open(self.__serial_no)
         # print(type(opened_return))
         if not opened_return == 0:
-            print("Opening communication failed!") 
+            raise ConnectionError("Opening communication to the device "+self.serial_no+\
+                " failed. Is it connected?") 
         return opened_return
     def close(self):
         '''
@@ -103,24 +88,58 @@ class kcube:
     def get_polling_duration(self):
         return kdc.CC_PollingDuration(self.__serial_no)
 
-    def clear_msg_queue(self, parameter_list):
-        pass
+    def clear_msg_queue(self):
+        kdc.CC_ClearMessageQueue(self.__serial_no)
     def wait_for_msg(self):
         # kcdc.CC_WaitForMessage(serialno, byref(message_type), byref(message_id), byref(message_data))
         pass
     
-    # Move settings and moving
+    # Get move settings and moving
+    def get_position(self, in_mm = False):
+        '''
+        Get current motor position.
+
+        in_mm: bool
+            if True, the value is returned on millimeter based on the steps per millimeter setting.
+            Otherwise the encoder position is returned.
+        
+        '''
+        encoder_pos = kdc.CC_GetPosition(self.__serial_no)
+        if in_mm:
+            return encoder_pos/self.steps_per_mm
+        else:
+            return encoder_pos
     def can_home(self):
+        return kdc.CC_CanHome(self.__serial_no)
         # kcdc.CC_CanHome(serialno)
-        pass
+        # pass
     def home(self):
         # CC_Home(serialno)
         pass
     def get_jog_vel_params(self):
-        # CC_GetJogVelParams
-        pass
-    def move_to_position(self, position):
+        acceleration = ctypes.c_int()
+        max_velocity = ctypes.c_int()
+        if kdc.CC_RequestJogParams(self.__serial_no) == 0:
+            err_code = kdc.CC_GetJogVelParams(self.__serial_no, ctypes.byref(acceleration), 
+                ctypes.byref(max_velocity))
+            if err_code != 0:
+                raise Exception("'CC_GetJogVelParams' return a non-zero error code. Please refer "+\
+                " to the API documentation. Error Code: "+str(errCode))
+        return acceleration, max_velocity
+    def get_move_vel_params(self):
+        acceleration = ctypes.c_int()
+        max_velocity = ctypes.c_int()
+        if kdc.CC_RequestVelParams(self.__serial_no) == 0:
+            err_code = kdc.CC_GetVelParams(self.__serial_no, ctypes.byref(acceleration), 
+                ctypes.byref(max_velocity))
+            if err_code != 0:
+                raise Exception("'CC_GetJogVelParams' return a non-zero error code. Please refer "+\
+                " to the API documentation. Error Code: "+str(errCode))
+        return acceleration, max_velocity
+
+    def move_to_position(self, position_mm):
         #CC_MoveToPosition
+        kdc.CC_MoveToPosition(self.__serial_no, position_mm)
         pass
 
 

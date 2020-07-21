@@ -64,7 +64,11 @@ CC_Identify = bind(lib, "CC_Identify", [POINTER(c_char)], None)
 # KCUBEDCSERVO_API short __cdecl CC_SetLEDswitches(char const * serialNo, WORD LEDswitches);
 CC_CanHome = bind(lib, "CC_CanHome", [POINTER(c_char)], c_bool)
 CC_ClearMessageQueue = bind(lib, "CC_ClearMessageQueue", [POINTER(c_char)], None)
+CC_RequestJogParams = bind(lib, "CC_RequestJogParams", [POINTER(c_char)], c_short)
 CC_GetJogVelParams = bind(lib, "CC_GetJogVelParams", [POINTER(c_char),POINTER(c_int),POINTER(c_int)], c_short)
+CC_RequestVelParams = bind(lib, "CC_RequestVelParams", [POINTER(c_char)], c_short)
+CC_GetVelParams = bind(lib, "CC_GetVelParams", [POINTER(c_char),POINTER(c_int),POINTER(c_int)], c_short)
+
 CC_GetPosition  = bind(lib, "CC_GetPosition", [POINTER(c_char)], c_int)
 CC_Home = bind(lib, "CC_Home", [POINTER(c_char)], c_short)
 CC_MoveToPosition = bind(lib, "CC_MoveToPosition", [POINTER(c_char), c_int], c_short)

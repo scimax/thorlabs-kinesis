@@ -1,53 +1,77 @@
 import os
 import sys
+import ctypes
+import time
+
 os.environ['PATH'] = "C:\\Program Files\\ThorLabs\\Kinesis" + ";" + os.environ['PATH']
 sys.path.append(r"..\thorlabs-kinesis")
+# sys.path.append(r"..\devices")
 
 class Static_Vars:
     steps_per_mm = 34304
 
-from thorlabs_kinesis.kcube_dc_device import kcube
-# from thorlabs_kinesis import kcube_dcservo as kcdc
+from thorlabs_kinesis.devices.kcube_dc import kcube_dc
+from thorlabs_kinesis import kcube_dcservo as kcdc
 
 if __name__ == "__main__":
     serial_no = "27256231"
 
     if kcdc.TLI_BuildDeviceList() == 0:
         print("Device list built (no errors).")
+    else:
+        raise ConnectionError("Device list could not be built.")
 
-    size = kcdc.TLI_GetDeviceListSize()
-    print(size, "device(s) found.")
+    # size = kcdc.TLI_GetDeviceListSize()
+    # print(size, "device(s) found.")
 
-    serialnos = create_string_buffer(100)
-    kcdc.TLI_GetDeviceListExt(serialnos, 100)
-    serialnos = list(filter(None, serialnos.value.decode("utf-8").split(',')))
-    print("Serial #'s:", serialnos)
+    # serialnos = ctypes.create_string_buffer(100)
+    # kcdc.TLI_GetDeviceListExt(serialnos, 100)
+    # serialnos = list(filter(None, serialnos.value.decode("utf-8").split(',')))
+    # print("Serial #'s:", serialnos)
 
-    device = kcube(serial_no)
+    device = kcube_dc(serial_no)
 
-    device.print_device_info()
-    print(device.get_device_info())
+    # device.print_device_info()
+    # print(device.get_device_info())
     
     with device as dev:
-        print("\nIdentify...")
-        dev.identify(wait=0.5)
-        print("\nIdentified.")
+        # print("\nIdentify...")
+        # dev.identify(wait=0.5)
+        # print("\nIdentified.")
 
+        print("Start polling...")
+        if dev.start_polling(100):
+            print("Successfully started polling.")
+        dev.clear_msg_queue()
+        time.sleep(1)
         print("Current Position: {:7.4f} mm".format(dev.get_position(in_mm=True)))
         print("Current Position: {:7} encoder steps".format(dev.get_position()))
         print("Current Polling duration (ms): ", dev.get_polling_duration())
-        print("Start polling...")
-        if dev.start_polling():
-            print("Successfully started polling.")
+        
+        # if dev.can_home():
+
+        # else:
+        #     print("Device can't be homed.")
+        jog_acc, jog_max_vel = dev.get_jog_vel_params()
+        print("jog acc: {},     jog max. velocity: {}".format(jog_acc.value, 
+            jog_max_vel.value))
+        move_acc, move_max_vel = dev.get_move_vel_params()
+        print("move acc: {},     move max. velocity: {}".format(move_acc.value, 
+            move_max_vel.value))
+#         (c_long(842085888), c_long(2703912))
+#         (c_long(393), c_long(1688183))
+        print("velocity using encouters:", move_max_vel.value/dev.steps_per_mm)
+        
         print("Stop polling")
-        dev.start_polling()
+        dev.stop_polling()
+
 
         # dev.start_poll()
         # dev.
 
-    # serialno = c_char_p(bytes("27504851", "utf-8"))
-    # accel_param = c_int()
-    # vel_param = c_int()
+    # serialno = ctypes.c_char_p(bytes(serial_no, "utf-8"))
+    # accel_param = ctypes.c_int()
+    # vel_param = ctypes.c_int()
     # message_type = WORD()
     # message_id = WORD()
     # message_data = DWORD()
@@ -64,8 +88,8 @@ if __name__ == "__main__":
     # homeable = bool(kcdc.CC_CanHome(serialno))
     # print(homeable)
     # #Get Motor Position
-    # kcdc.CC_GetJogVelParams(serialno, byref(accel_param), byref(vel_param))
-    # #print(accel_param.value)
+    # kcdc.CC_GetJogVelParams(serialno, ctypes.byref(accel_param), ctypes.byref(vel_param))
+    # print(accel_param.value)
     # current_motor_pos = kcdc.CC_GetPosition(serialno)
     # print(current_motor_pos)
     # # #kcdc.CC_Home(serialno)
