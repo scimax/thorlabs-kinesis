@@ -34,6 +34,9 @@ if __name__ == "__main__":
     # device.print_device_info()
     # print(device.get_device_info())
     
+    print("velocity: {:.4f} mm/s".format(1688183* kcube_dc.velocity_scaling_to_mm_per_sec))
+    print("acceleration: {:.4f} mm/s^2".format(393 * kcube_dc.acc_scaling_to_mm_per_sec2))
+    
     with device as dev:
         # print("\nIdentify...")
         # dev.identify(wait=0.5)
@@ -48,7 +51,8 @@ if __name__ == "__main__":
         print("Current Position: {:7} encoder steps".format(dev.get_position()))
         print("Current Polling duration (ms): ", dev.get_polling_duration())
         
-        # if dev.can_home():
+        if dev.can_home():
+            dev.home()
 
         # else:
         #     print("Device can't be homed.")
@@ -58,16 +62,10 @@ if __name__ == "__main__":
         move_acc, move_max_vel = dev.get_move_vel_params()
         print("move acc: {},     move max. velocity: {}".format(move_acc.value, 
             move_max_vel.value))
-#         (c_long(842085888), c_long(2703912))
-#         (c_long(393), c_long(1688183))
         print("velocity using encouters:", move_max_vel.value/dev.steps_per_mm)
         
         print("Stop polling")
         dev.stop_polling()
-
-
-        # dev.start_poll()
-        # dev.
 
     # serialno = ctypes.c_char_p(bytes(serial_no, "utf-8"))
     # accel_param = ctypes.c_int()

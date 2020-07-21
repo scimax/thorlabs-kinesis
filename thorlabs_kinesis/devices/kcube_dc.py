@@ -6,6 +6,8 @@ from .. import kcube_dcservo as kdc
 
 class kcube_dc:
     steps_per_mm = 34304    # class object
+    velocity_scaling_to_mm_per_sec = 6e6/(2048 * 65536 *steps_per_mm)
+    acc_scaling_to_mm_per_sec2 = (6e6/2048)**2 /(65536 *steps_per_mm)
     def __init__(self, serial_no):
         '''
         serial_no: str
@@ -14,6 +16,9 @@ class kcube_dc:
         self.serial_no = serial_no
         self.__serial_no = ctypes.c_char_p(bytes(serial_no, "utf-8"))
         # self.steps_per_mm = 34304
+        self.__message_type = WORD()
+        self.__message_id = WORD()
+        self.__message_data = DWORD()
 
     def identify(self, wait=5):
         kdc.CC_Identify(self.__serial_no)
@@ -113,10 +118,20 @@ class kcube_dc:
         return kdc.CC_CanHome(self.__serial_no)
         # kcdc.CC_CanHome(serialno)
         # pass
-    def home(self):
-        # CC_Home(serialno)
-        pass
-    def get_jog_vel_params(self):
+    def home(self, wait = True):
+        errorCode = kdc.CC_Home(self.__serial_no)
+        if wait:
+
+        else:
+            return errorCode
+
+    def get_jog_vel_params(self, in_mm_and_sec=False):
+        '''
+        in_mm_and_sec: bool
+            if True, acceleration is returned in mm/sec^2 and velocity is returned as mm/sec.
+            For details on the conversion, see page 36 of the Communication protocol.
+            (https://www.thorlabs.com/Software/Motion%20Control/APT_Communications_Protocol.pdf)
+        '''
         acceleration = ctypes.c_int()
         max_velocity = ctypes.c_int()
         if kdc.CC_RequestJogParams(self.__serial_no) == 0:
@@ -125,23 +140,53 @@ class kcube_dc:
             if err_code != 0:
                 raise Exception("'CC_GetJogVelParams' return a non-zero error code. Please refer "+\
                 " to the API documentation. Error Code: "+str(errCode))
-        return acceleration, max_velocity
-    def get_move_vel_params(self):
+        if in_mm_and_sec:
+            return acceleration*self.acc_scaling_to_mm_per_sec2,\
+                max_velocity*self.velocity_scaling_to_mm_per_sec
+        else:
+            return acceleration, max_velocity
+    def get_move_vel_params(self, in_mm_and_sec=False):
+        '''
+        in_mm_and_sec: bool
+            if True, acceleration is returned in mm/sec^2 and velocity is returned as mm/sec.
+            For details on the conversion, see page 36 of the Communication protocol.
+            (https://www.thorlabs.com/Software/Motion%20Control/APT_Communications_Protocol.pdf)
+        '''
         acceleration = ctypes.c_int()
         max_velocity = ctypes.c_int()
         if kdc.CC_RequestVelParams(self.__serial_no) == 0:
             err_code = kdc.CC_GetVelParams(self.__serial_no, ctypes.byref(acceleration), 
                 ctypes.byref(max_velocity))
             if err_code != 0:
-                raise Exception("'CC_GetJogVelParams' return a non-zero error code. Please refer "+\
+                raise Exception("'CC_GetVelParams' return a non-zero error code. Please refer "+\
                 " to the API documentation. Error Code: "+str(errCode))
-        return acceleration, max_velocity
+        if in_mm_and_sec:
+            return acceleration*self.acc_scaling_to_mm_per_sec2,\
+                max_velocity*self.velocity_scaling_to_mm_per_sec
+        else:
+            return acceleration, max_velocity
 
     def move_to_position(self, position_mm):
         #CC_MoveToPosition
         kdc.CC_MoveToPosition(self.__serial_no, position_mm)
         pass
-
+    def move_relative(self, displacement)
+        # TODO
+        # CC_MoveRelative(char const * serialNo, int displacement);
+        pass
+    def move_jog(self):
+        # TODO
+        # CC_MoveJog(char const * serialNo, MOT_TravelDirection jogDirection);
+        pass
+    
+    def set_jog_vel_params(self):
+        # TODO
+        print("NOT IMPLEMENTED YET!")
+        return False
+    def set_vel_params(self):
+        # TODO
+        print("NOT IMPLEMENTED YET!")
+        return False
 
     # https://stackoverflow.com/questions/3774328/implementing-use-of-with-object-as-f-in-custom-class-in-python
     def __enter__(self):
