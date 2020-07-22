@@ -16,9 +16,9 @@ class kcube_dc:
         self.serial_no = serial_no
         self.__serial_no = ctypes.c_char_p(bytes(serial_no, "utf-8"))
         # self.steps_per_mm = 34304
-        self.__message_type = WORD()
-        self.__message_id = WORD()
-        self.__message_data = DWORD()
+        # self.__message_type = ctypes.wintypes.WORD()
+        # self.__message_id = ctypes.wintypes.WORD()
+        # self.__message_data = ctypes.wintypes.DWORD()
 
     def identify(self, wait=5):
         kdc.CC_Identify(self.__serial_no)
@@ -120,10 +120,13 @@ class kcube_dc:
         # pass
     def home(self, wait = True):
         errorCode = kdc.CC_Home(self.__serial_no)
-        if wait:
-
-        else:
+        if errorCode != 0:
             return errorCode
+        else:
+            if wait:
+                pass
+            else:
+                return errorCode
 
     def get_jog_vel_params(self, in_mm_and_sec=False):
         '''
@@ -166,19 +169,82 @@ class kcube_dc:
         else:
             return acceleration, max_velocity
 
-    def move_to_position(self, position_mm):
-        #CC_MoveToPosition
-        kdc.CC_MoveToPosition(self.__serial_no, position_mm)
-        pass
-    def move_relative(self, displacement)
-        # TODO
-        # CC_MoveRelative(char const * serialNo, int displacement);
-        pass
-    def move_jog(self):
-        # TODO
-        # CC_MoveJog(char const * serialNo, MOT_TravelDirection jogDirection);
-        pass
+    def move_to_position(self, position, in_mm=True):
+        '''
+        position: float or int
+            absolut position to move to in millimeter. The encoder count is used to convert 
+            to discrete steps, which is rounded to an integer value. If in_mm is False, the 
+            position is directly considered as encoder steps and casted as integer.
+        in_mm : bool, optional
+            flag describing whether the displacement is given in real life units (mm) or in
+            device units, which are encoder counts.
+
+        If return value is 0 the connection was succesfully opened. Otherwise the return
+        value corresponds to the C_DLL_ERRORCODES_page "Error Codes" .
+        '''
+        if in_mm:
+            position_cts = ctypes.c_int(int(position * self.steps_per_mm))
+        else:
+            position_cts = ctypes.c_int(int(position))
+        return kdc.CC_MoveToPosition(self.__serial_no, position_cts)
+    def move_relative(self, displacement, in_mm=True):
+        '''
+        displacement: float 
+            displacement in millimeter. The encoder count is used to convert to disccrete steps,
+            which is rounded to an integer value. If in_mm is False, the displacement is directly
+            considered as encoder steps and casted as integer.
+        in_mm : bool, optional
+            flag describing whether the displacement is given in real life units (mm) or in
+            device units, which are encoder counts.
+
+        If return value is 0 the connection was succesfully opened. Otherwise the return
+        value corresponds to the C_DLL_ERRORCODES_page "Error Codes" .
+        '''
+        if in_mm:
+            displacement_cts = ctypes.c_int(int(displacement * self.steps_per_mm))
+        else:
+            displacement_cts = ctypes.c_int(int(displacement))
+        errorCode = kdc.CC_MoveRelative(self.__serial_no, displacement_cts)
+        return errorCode
+
+    def move_jog(self, jogDirection=1):
+        '''
+        jogDirection: either 1 or 2, default 1
+            Jog direction where 1 represents forward movement while 2 means backward movement.
+        '''
+        errorCode = kdc.CC_MoveJog(self.__serial_no, jogDirection)
+        return errorCode
     
+    def set_jog_step_size(self, step_size, in_mm=True):
+        '''
+        step_size: float or int
+            step size  to in millimeter. The encoder count is used to convert 
+            to discrete steps, which is rounded to an integer value. If in_mm is False, the 
+            step size is directly considered as encoder steps and casted as integer.
+        in_mm : bool, optional
+            flag describing whether the step size is given in real life units (mm) or in
+            device units, which are encoder counts.
+
+        The return value is 0 if the command was succesful. Otherwise the return
+        value corresponds to the C_DLL_ERRORCODES_page "Error Codes" .
+        '''
+        if in_mm:
+            step_cts = ctypes.c_uint(int(step_size * self.steps_per_mm))
+        else:
+            step_cts = ctypes.c_uint(int(step_size))
+        return kdc.CC_SetJogStepSize(self.__serial_no, step_cts)
+    def get_jog_step_size(self, in_mm=True):
+        '''
+        in_mm : bool, optional
+            flag describing whether the step size is given in real life units (mm) or in
+            device units, which are encoder counts.
+        '''
+        encoder_step_size = kdc.CC_GetJogStepSize(self.__serial_no)
+        if in_mm:
+            return encoder_step_size/self.steps_per_mm
+        else:
+            return encoder_step_size
+
     def set_jog_vel_params(self):
         # TODO
         print("NOT IMPLEMENTED YET!")

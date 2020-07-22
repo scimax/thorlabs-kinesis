@@ -15,19 +15,20 @@ from thorlabs_kinesis import kcube_dcservo as kcdc
 
 if __name__ == "__main__":
     serial_no = "27256231"
+    serial_no = "27000001"
 
     if kcdc.TLI_BuildDeviceList() == 0:
         print("Device list built (no errors).")
     else:
         raise ConnectionError("Device list could not be built.")
 
-    # size = kcdc.TLI_GetDeviceListSize()
-    # print(size, "device(s) found.")
+    size = kcdc.TLI_GetDeviceListSize()
+    print(size, "device(s) found.")
 
-    # serialnos = ctypes.create_string_buffer(100)
-    # kcdc.TLI_GetDeviceListExt(serialnos, 100)
-    # serialnos = list(filter(None, serialnos.value.decode("utf-8").split(',')))
-    # print("Serial #'s:", serialnos)
+    serialnos = ctypes.create_string_buffer(100)
+    kcdc.TLI_GetDeviceListExt(serialnos, 100)
+    serialnos = list(filter(None, serialnos.value.decode("utf-8").split(',')))
+    print("Serial #'s:", serialnos)
 
     device = kcube_dc(serial_no)
 
