@@ -16,9 +16,11 @@ class kcube_dc:
         self.serial_no = serial_no
         self.__serial_no = ctypes.c_char_p(bytes(serial_no, "utf-8"))
         # self.steps_per_mm = 34304
-        # self.__message_type = ctypes.wintypes.WORD()
-        # self.__message_id = ctypes.wintypes.WORD()
-        # self.__message_data = ctypes.wintypes.DWORD()
+        self.__message_type = ctypes.wintypes.WORD()
+        self.__message_id = ctypes.wintypes.WORD()
+        self.__message_data = ctypes.wintypes.DWORD()
+        
+        self.clear_msg_queue()
 
     def identify(self, wait=5):
         kdc.CC_Identify(self.__serial_no)
@@ -94,10 +96,25 @@ class kcube_dc:
         return kdc.CC_PollingDuration(self.__serial_no)
 
     def clear_msg_queue(self):
-        kdc.CC_ClearMessageQueue(self.__serial_no)
-    def wait_for_msg(self):
+        return kdc.CC_ClearMessageQueue(self.__serial_no)
+    def wait_for_msg(self, timeout=30):
+        '''
+        timeout: float
+            time in seconds to wait for a message response. This is needed to avoid infinite loops.
+            Default is 30 seconds which should in most cases be enough
+        '''
+        timeout_end = time.time() + timeout
+        kdc.CC_WaitForMessage(self.__serial_no, ctypes.byref(self.__message_type), 
+                           ctypes.byref(self.__message_id), ctypes.byref(self.__message_data))
+        while ((int(self.__message_type.value) != 2) or (int(self.__message_id.value) != 1))\
+            and time.time() < timeout_end:
+            kdc.CC_WaitForMessage(self.__serial_no, ctypes.byref(self.__message_type), 
+                           ctypes.byref(self.__message_id), ctypes.byref(self.__message_data))
+            # kdc.CC_RequestPosition(serialno)
+            # w_out.value = kcdc.CC_GetPosition(serialno)/kcube.steps_per_mm
+            time.sleep(0.05)
+            
         # kcdc.CC_WaitForMessage(serialno, byref(message_type), byref(message_id), byref(message_data))
-        pass
     
     # Get move settings and moving
     def get_position(self, in_mm = False):
@@ -144,8 +161,8 @@ class kcube_dc:
                 raise Exception("'CC_GetJogVelParams' return a non-zero error code. Please refer "+\
                 " to the API documentation. Error Code: "+str(err_code))
         if in_mm_and_sec:
-            return acceleration*self.acc_scaling_to_mm_per_sec2,\
-                max_velocity*self.velocity_scaling_to_mm_per_sec
+            return acceleration.value*self.acc_scaling_to_mm_per_sec2,\
+                max_velocity.value*self.velocity_scaling_to_mm_per_sec
         else:
             return acceleration, max_velocity
     def get_move_vel_params(self, in_mm_and_sec=False):
@@ -164,12 +181,12 @@ class kcube_dc:
                 raise Exception("'CC_GetVelParams' return a non-zero error code. Please refer "+\
                 " to the API documentation. Error Code: "+str(err_code))
         if in_mm_and_sec:
-            return acceleration*self.acc_scaling_to_mm_per_sec2,\
-                max_velocity*self.velocity_scaling_to_mm_per_sec
+            return acceleration.value*self.acc_scaling_to_mm_per_sec2,\
+                max_velocity.value*self.velocity_scaling_to_mm_per_sec
         else:
             return acceleration, max_velocity
 
-    def move_to_position(self, position, in_mm=True):
+    def move_to_position(self, position, in_mm=True, wait=False):
         '''
         position: float or int
             absolut position to move to in millimeter. The encoder count is used to convert 
@@ -178,7 +195,12 @@ class kcube_dc:
         in_mm : bool, optional
             flag describing whether the displacement is given in real life units (mm) or in
             device units, which are encoder counts.
-
+        wait: bool, optional
+            By default, the the function returns before the operation has been finished and 
+            it has to be checked manually, if the controller has finished the movement. By 
+            setting `wait` to True, the function blocks the execution and only returns after
+            the controller send a message.
+            
         If return value is 0 the connection was succesfully opened. Otherwise the return
         value corresponds to the C_DLL_ERRORCODES_page "Error Codes" .
         '''
@@ -186,8 +208,11 @@ class kcube_dc:
             position_cts = ctypes.c_int(int(position * self.steps_per_mm))
         else:
             position_cts = ctypes.c_int(int(position))
-        return kdc.CC_MoveToPosition(self.__serial_no, position_cts)
-    def move_relative(self, displacement, in_mm=True):
+        errorCode = kdc.CC_MoveToPosition(self.__serial_no, position_cts)
+        if wait:
+            self.wait_for_msg()
+        return errorCode
+    def move_relative(self, displacement, in_mm=True, wait=False):
         '''
         displacement: float 
             displacement in millimeter. The encoder count is used to convert to disccrete steps,
@@ -196,6 +221,11 @@ class kcube_dc:
         in_mm : bool, optional
             flag describing whether the displacement is given in real life units (mm) or in
             device units, which are encoder counts.
+        wait: bool, optional
+            By default, the the function returns before the operation has been finished and 
+            it has to be checked manually, if the controller has finished the movement. By 
+            setting `wait` to True, the function blocks the execution and only returns after
+            the controller send a message.
 
         If return value is 0 the connection was succesfully opened. Otherwise the return
         value corresponds to the C_DLL_ERRORCODES_page "Error Codes" .
@@ -205,14 +235,23 @@ class kcube_dc:
         else:
             displacement_cts = ctypes.c_int(int(displacement))
         errorCode = kdc.CC_MoveRelative(self.__serial_no, displacement_cts)
+        if wait:
+            self.wait_for_msg()
         return errorCode
 
-    def move_jog(self, jogDirection=1):
+    def move_jog(self, jogDirection=1, wait=False):
         '''
         jogDirection: either 1 or 2, default 1
             Jog direction where 1 represents forward movement while 2 means backward movement.
+        wait: bool, optional
+            By default, the the function returns before the operation has been finished and 
+            it has to be checked manually, if the controller has finished the movement. By 
+            setting `wait` to True, the function blocks the execution and only returns after
+            the controller send a message.
         '''
         errorCode = kdc.CC_MoveJog(self.__serial_no, ctypes.c_short(jogDirection))
+        if wait:
+            self.wait_for_msg()
         return errorCode
     
     def set_jog_step_size(self, step_size, in_mm=True):
