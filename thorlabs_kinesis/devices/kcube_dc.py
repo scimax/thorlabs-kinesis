@@ -142,7 +142,7 @@ class kcube_dc:
                 ctypes.byref(max_velocity))
             if err_code != 0:
                 raise Exception("'CC_GetJogVelParams' return a non-zero error code. Please refer "+\
-                " to the API documentation. Error Code: "+str(errCode))
+                " to the API documentation. Error Code: "+str(err_code))
         if in_mm_and_sec:
             return acceleration*self.acc_scaling_to_mm_per_sec2,\
                 max_velocity*self.velocity_scaling_to_mm_per_sec
@@ -162,7 +162,7 @@ class kcube_dc:
                 ctypes.byref(max_velocity))
             if err_code != 0:
                 raise Exception("'CC_GetVelParams' return a non-zero error code. Please refer "+\
-                " to the API documentation. Error Code: "+str(errCode))
+                " to the API documentation. Error Code: "+str(err_code))
         if in_mm_and_sec:
             return acceleration*self.acc_scaling_to_mm_per_sec2,\
                 max_velocity*self.velocity_scaling_to_mm_per_sec
@@ -212,7 +212,7 @@ class kcube_dc:
         jogDirection: either 1 or 2, default 1
             Jog direction where 1 represents forward movement while 2 means backward movement.
         '''
-        errorCode = kdc.CC_MoveJog(self.__serial_no, jogDirection)
+        errorCode = kdc.CC_MoveJog(self.__serial_no, ctypes.c_short(jogDirection))
         return errorCode
     
     def set_jog_step_size(self, step_size, in_mm=True):
