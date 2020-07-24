@@ -160,7 +160,7 @@ class kcube_dc:
                 ctypes.byref(max_velocity))
             if err_code != 0:
                 raise Exception("'CC_GetJogVelParams' return a non-zero error code. Please refer "+\
-                " to the API documentation. Error Code: "+str(errCode))
+                " to the API documentation. Error Code: "+str(err_code))
         if in_mm_and_sec:
             return acceleration.value*self.acc_scaling_to_mm_per_sec2,\
                 max_velocity.value*self.velocity_scaling_to_mm_per_sec
@@ -180,7 +180,7 @@ class kcube_dc:
                 ctypes.byref(max_velocity))
             if err_code != 0:
                 raise Exception("'CC_GetVelParams' return a non-zero error code. Please refer "+\
-                " to the API documentation. Error Code: "+str(errCode))
+                " to the API documentation. Error Code: "+str(err_code))
         if in_mm_and_sec:
             return acceleration.value*self.acc_scaling_to_mm_per_sec2,\
                 max_velocity.value*self.velocity_scaling_to_mm_per_sec
@@ -250,7 +250,7 @@ class kcube_dc:
             setting `wait` to True, the function blocks the execution and only returns after
             the controller send a message.
         '''
-        errorCode = kdc.CC_MoveJog(self.__serial_no, jogDirection)
+        errorCode = kdc.CC_MoveJog(self.__serial_no, ctypes.c_short(jogDirection))
         if wait:
             self.wait_for_msg()
         return errorCode
