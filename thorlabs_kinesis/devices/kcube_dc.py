@@ -68,6 +68,7 @@ class kcube_dc:
         if not opened_return == 0:
             raise ConnectionError("Opening communication to the device "+self.serial_no+\
                 " failed. Is it connected?") 
+        self.clear_msg_queue()
         return opened_return
     def close(self):
         '''
